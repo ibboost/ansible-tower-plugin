@@ -46,35 +46,6 @@ public class AnsibleTowerStep extends AbstractStepImpl {
     private Boolean throwExceptionWhenFail  = true;
     private Boolean async                   = false;
 
-    /* This dericated function will remain here in order for any thing calling our plugin to remain functional */
-    @Deprecated
-    public AnsibleTowerStep(
-            @Nonnull String towerServer, @Nonnull String towerCredentialsId, @Nonnull String jobTemplate, String jobType, String extraVars, String jobTags,
-            String skipJobTags, String limit, String inventory, String credential, String scmBranch, Boolean verbose,
-            Boolean importTowerLogs, Boolean removeColor, String templateType, Boolean importWorkflowChildLogs,
-            Boolean throwExceptionWhenFail, Boolean async
-    ) {
-        this.towerServer = towerServer;
-        this.towerCredentialsId = towerCredentialsId;
-        this.jobTemplate = jobTemplate;
-        this.extraVars = extraVars;
-        this.jobTags = jobTags;
-        this.skipJobTags = skipJobTags;
-        this.jobType = jobType;
-        this.limit = limit;
-        this.inventory = inventory;
-        this.credential = credential;
-        this.scmBranch = scmBranch;
-        this.verbose = verbose;
-        this.towerLogLevel = importTowerLogs.toString();
-        this.importTowerLogs = importTowerLogs;
-        this.removeColor = removeColor;
-        this.templateType = templateType;
-        this.importWorkflowChildLogs = importWorkflowChildLogs;
-        this.throwExceptionWhenFail = throwExceptionWhenFail;
-        this.async = async;
-    }
-
 
     /** @since 0.16.0 */
     @DataBoundConstructor
