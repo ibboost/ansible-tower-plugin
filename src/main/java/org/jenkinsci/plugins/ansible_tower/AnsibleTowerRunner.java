@@ -1,5 +1,19 @@
 package org.jenkinsci.plugins.ansible_tower;
 
+import java.io.PrintStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+
+import org.jenkinsci.plugins.ansible_tower.exceptions.AnsibleTowerException;
+import org.jenkinsci.plugins.ansible_tower.util.TowerConnector;
+import org.jenkinsci.plugins.ansible_tower.util.TowerInstallation;
+import org.jenkinsci.plugins.ansible_tower.util.TowerJob;
+import org.jenkinsci.plugins.ansible_tower.util.TowerProject;
+import org.jenkinsci.plugins.ansible_tower.util.TowerProjectSync;
+import org.jenkinsci.plugins.envinject.service.EnvInjectActionSetter;
+
 /*
     This class is a bridge between the Jenkins workflow/plugin step and TowerConnector.
     The intention is to abstract the "work" from the two Jenkins classes
@@ -11,12 +25,6 @@ import hudson.Plugin;
 import hudson.model.Run;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.jenkinsci.plugins.ansible_tower.exceptions.AnsibleTowerException;
-import org.jenkinsci.plugins.ansible_tower.util.*;
-import org.jenkinsci.plugins.envinject.service.EnvInjectActionSetter;
-
-import java.io.PrintStream;
-import java.util.*;
 
 public class AnsibleTowerRunner {
     private TowerJob myJob = null;
@@ -24,18 +32,23 @@ public class AnsibleTowerRunner {
     public boolean runJobTemplate(
             PrintStream logger, String towerServer, String towerCredentialsId, String jobTemplate, String jobType,
             String extraVars, String limit, String jobTags, String skipJobTags, String inventory, String credential, String scmBranch,
-            boolean verbose, String importTowerLogs, boolean removeColor, EnvVars envVars, String templateType,
+            boolean verbose, String towerLogLevel, boolean removeColor, EnvVars envVars, String templateType,
             boolean importWorkflowChildLogs, FilePath ws, Run<?, ?> run, Properties towerResults
     ) {
-        return this.runJobTemplate(logger, towerServer, towerCredentialsId, jobTemplate, jobType, extraVars, limit,
-                jobTags, skipJobTags, inventory, credential, scmBranch, verbose, importTowerLogs, removeColor, envVars,
+        if (verbose) {
+            logger.println("Initialising job run template");
+        } else {
+        	logger.println("Initialising job run template without verbosity");
+        }
+    	return this.runJobTemplate(logger, towerServer, towerCredentialsId, jobTemplate, jobType, extraVars, limit,
+                jobTags, skipJobTags, inventory, credential, scmBranch, verbose, towerLogLevel, removeColor, envVars,
                 templateType, importWorkflowChildLogs, ws, run, towerResults, false);
     }
 
     public boolean runJobTemplate(
             PrintStream logger, String towerServer, String towerCredentialsId, String jobTemplate, String jobType,
             String extraVars, String limit, String jobTags, String skipJobTags, String inventory, String credential, String scmBranch,
-            boolean verbose, String importTowerLogs, boolean removeColor, EnvVars envVars, String templateType,
+            boolean verbose, String towerLogLevel, boolean removeColor, EnvVars envVars, String templateType,
             boolean importWorkflowChildLogs, FilePath ws, Run<?, ?> run, Properties towerResults, boolean async
     ) {
         if (verbose) {
@@ -67,7 +80,7 @@ public class AnsibleTowerRunner {
         }
 
         // Check the import logs settings
-        if (!(importTowerLogs.matches("false") || importTowerLogs.matches("true") || importTowerLogs.matches("vars") || importTowerLogs.matches("full"))) {
+        if (!(towerLogLevel.matches("false") || towerLogLevel.matches("true") || towerLogLevel.matches("vars") || towerLogLevel.matches("full"))) {
             logger.println("ERROR: Import Tower Logs must be one of (false, true, vars or full)");
             return false;
         }
@@ -224,7 +237,7 @@ public class AnsibleTowerRunner {
 
         boolean jobCompleted = false;
         // Assume the old logging behaviour (truncated logs) but we we are doing full logging or var logging then swtich to true
-        if (importTowerLogs.matches("full") || importTowerLogs.matches("vars")) { myTowerConnection.setGetFullLogs(true); }
+        if (towerLogLevel.matches("full") || towerLogLevel.matches("vars")) { myTowerConnection.setGetFullLogs(true); }
         while (!jobCompleted) {
             if(Thread.currentThread().isInterrupted()) {
                 myTowerConnection.releaseToken();
@@ -233,7 +246,7 @@ public class AnsibleTowerRunner {
 
             // First log any events if the user wants them
             try {
-                this.getJobLogs(importTowerLogs, logger);
+                this.getJobLogs(towerLogLevel, logger);
             } catch (AnsibleTowerException e) {
                 logger.println("ERROR: Failed to get job events from tower: " + e.getMessage());
                 myTowerConnection.releaseToken();
@@ -265,7 +278,7 @@ public class AnsibleTowerRunner {
         // Note, that a job can complete long before Tower has finished consuming the logs. This can cause incomplete
         //    logs within Jenkins.
         try {
-            this.getJobLogs(importTowerLogs, logger);
+            this.getJobLogs(towerLogLevel, logger);
         } catch (AnsibleTowerException e) {
             logger.println("ERROR: Failed to get final job events from tower: " + e.getMessage());
             myTowerConnection.releaseToken();
@@ -328,13 +341,13 @@ public class AnsibleTowerRunner {
         return wasSuccessful;
     }
 
-    public void getJobLogs(String importTowerLogs, PrintStream logger) throws AnsibleTowerException {
-        if (importTowerLogs.matches("false")) { return; }
+    public void getJobLogs(String towerLogLevel, PrintStream logger) throws AnsibleTowerException {
+        if (towerLogLevel.matches("false")) { return; }
 
         // If we are anything but false we have to pull the logs
         for (String event : this.myJob.getLogs()) {
             // However, if we are doing this for vars only then we don't need to display the logs
-            if (! importTowerLogs.matches("vars")) {
+            if (! towerLogLevel.matches("vars")) {
                 logger.println(event);
             }
         }

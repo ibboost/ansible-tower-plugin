@@ -1,17 +1,10 @@
 package org.jenkinsci.plugins.ansible_tower;
 
-/*
-        This class is the standard workflow step
-        We simply take the data from Jenkins and call an AnsibleTowerRunner
- */
+import java.io.IOException;
+import java.util.Properties;
 
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.Launcher;
-import hudson.model.*;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Builder;
-import hudson.util.ListBoxModel;
+import javax.annotation.Nonnull;
+
 import org.jenkinsci.plugins.ansible_tower.util.GetUserPageCredentials;
 import org.jenkinsci.plugins.ansible_tower.util.TowerInstallation;
 import org.kohsuke.stapler.AncestorInPath;
@@ -20,11 +13,22 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.util.Properties;
+/*
+        This class is the standard workflow step
+        We simply take the data from Jenkins and call an AnsibleTowerRunner
+ */
 
-import static com.cloudbees.plugins.credentials.CredentialsMatchers.instanceOf;
+import hudson.EnvVars;
+import hudson.Extension;
+import hudson.Launcher;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Item;
+import hudson.model.Result;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Builder;
+import hudson.util.ListBoxModel;
 
 /**
  * @author Janario Oliveira
@@ -43,41 +47,17 @@ public class AnsibleTower extends Builder {
     private String credential               = DescriptorImpl.credential;
 	private String scmBranch                = DescriptorImpl.scmBranch;
     private Boolean verbose                 = DescriptorImpl.verbose;
-    private String importTowerLogs			= DescriptorImpl.importTowerLogs;
+    private String towerLogLevel			= DescriptorImpl.towerLogLevel;
     private Boolean removeColor				= DescriptorImpl.removeColor;
 	private String templateType				= DescriptorImpl.templateType;
 	private Boolean importWorkflowChildLogs	= DescriptorImpl.importWorkflowChildLogs;
 
-	/* Legacy constructor from 0.15.0 */
-	public AnsibleTower(
-			@Nonnull String towerServer, @Nonnull String jobTemplate, String towerCredentialsId, String jobType,
-			String extraVars, String jobTags, String skipJobTags, String limit, String inventory, String credential, String scmBranch,
-			Boolean verbose, Boolean importTowerLogs, Boolean removeColor, String templateType,
-			Boolean importWorkflowChildLogs
-	) {
-		this.towerServer = towerServer;
-		this.jobTemplate = jobTemplate;
-		this.towerCredentialsId = towerCredentialsId;
-		this.extraVars = extraVars;
-		this.jobTags = jobTags;
-		this.skipJobTags = skipJobTags;
-		this.jobType = jobType;
-		this.limit = limit;
-		this.inventory = inventory;
-		this.credential = credential;
-		this.scmBranch = scmBranch;
-		this.verbose = verbose;
-		this.importTowerLogs = importTowerLogs.toString();
-		this.removeColor = removeColor;
-		this.templateType = templateType;
-		this.importWorkflowChildLogs = importWorkflowChildLogs;
-	}
 
 	@DataBoundConstructor
 	public AnsibleTower(
 			@Nonnull String towerServer, @Nonnull String jobTemplate, String towerCredentialsId, String jobType,
 			String extraVars, String jobTags, String skipJobTags, String limit, String inventory, String credential, String scmBranch,
-			Boolean verbose, String importTowerLogs, Boolean removeColor, String templateType,
+			Boolean verbose, String towerLogLevel, Boolean removeColor, String templateType,
 			Boolean importWorkflowChildLogs
 	) {
 		this.towerServer = towerServer;
@@ -92,7 +72,7 @@ public class AnsibleTower extends Builder {
 		this.credential = credential;
 		this.scmBranch = scmBranch;
 		this.verbose = verbose;
-		this.importTowerLogs = importTowerLogs;
+		this.towerLogLevel = towerLogLevel;
 		this.removeColor = removeColor;
 		this.templateType = templateType;
 		this.importWorkflowChildLogs = importWorkflowChildLogs;
@@ -112,7 +92,7 @@ public class AnsibleTower extends Builder {
 	public String getCredential() { return credential; }
 	public String getScmBranch() { return scmBranch; }
 	public Boolean getVerbose() { return verbose; }
-	public String getImportTowerLogs() { return importTowerLogs; }
+	public String getTowerLogLevel() { return towerLogLevel; }
 	public Boolean getRemoveColor() { return removeColor; }
 	public String getTemplateType() { return templateType; }
 	public Boolean getImportWorkflowChildLogs() { return importWorkflowChildLogs; }
@@ -141,10 +121,10 @@ public class AnsibleTower extends Builder {
 	public void setScmBranch(String scmBranch) { this.scmBranch = scmBranch; }
 	@DataBoundSetter
 	public void setVerbose(Boolean verbose) { this.verbose = verbose; }
+	//@DataBoundSetter
+	public void setTowerLogLevel(Boolean towerLogLevel) { this.towerLogLevel = towerLogLevel.toString(); }
 	@DataBoundSetter
-	public void setImportTowerLogs(Boolean importTowerLogs) { this.importTowerLogs = importTowerLogs.toString(); }
-	@DataBoundSetter
-	public void setImportTowerLogs(String importTowerLogs) { this.importTowerLogs = importTowerLogs; }
+	public void setTowerLogLevel(String towerLogLevel) { this.towerLogLevel = towerLogLevel; }
 	@DataBoundSetter
 	public void setRemoveColor(Boolean removeColor) { this.removeColor = removeColor; }
 	@DataBoundSetter
@@ -168,12 +148,19 @@ public class AnsibleTower extends Builder {
 		boolean importWorkflowChildLogs = false;
 		if(this.getImportWorkflowChildLogs() != null) { importWorkflowChildLogs = this.getImportWorkflowChildLogs(); }
 
+		boolean removeColor = false;
+		if(this.getRemoveColor() != null) { removeColor = this.getRemoveColor(); }
+
 		// here we just pass a map as we don't case for non pipeline jobs
 		boolean runResult = runner.runJobTemplate(
 				listener.getLogger(), this.getTowerServer(), this.towerCredentialsId, this.getJobTemplate(),
 				this.getJobType(),this.getExtraVars(), this.getLimit(), this.getJobTags(), this.getSkipJobTags(),
-				this.getInventory(), this.getCredential(), this.getScmBranch(), this.verbose, this.importTowerLogs, this.getRemoveColor(),
-				envVars, templateType, importWorkflowChildLogs, build.getWorkspace(), build, new Properties()
+				this.getInventory(),
+				this.getCredential(),
+				this.getScmBranch(),
+				this.verbose,
+				this.towerLogLevel,
+				removeColor, envVars, templateType, importWorkflowChildLogs, build.getWorkspace(), build, new Properties()
 		);
 		if(runResult) {
 			build.setResult(Result.SUCCESS);
@@ -198,7 +185,7 @@ public class AnsibleTower extends Builder {
 		public static final String credential     			= "";
 		public static final String scmBranch     			= "";
 		public static final Boolean verbose       			= false;
-		public static final String importTowerLogs			= "false";
+		public static final String towerLogLevel			= "false";
 		public static final Boolean removeColor				= false;
 		public static final String templateType				= "job";
 		public static final Boolean importWorkflowChildLogs	= false;
@@ -216,7 +203,7 @@ public class AnsibleTower extends Builder {
         }
 
         @Override
-        public String getDisplayName() { return "Ansible Tower"; }
+        public String getDisplayName() { return "Ansible Tower Build Step"; }
 
         public ListBoxModel doFillTowerServerItems() {
 			ListBoxModel items = new ListBoxModel();
@@ -246,7 +233,7 @@ public class AnsibleTower extends Builder {
             return GetUserPageCredentials.getUserAvailableCredentials(item, towerCredentialsId);
 		}
 
-		public ListBoxModel doFillImportTowerLogsItems() {
+		public ListBoxModel doFillTowerLogLevelItems() {
         	ListBoxModel items = new ListBoxModel();
         	items.add("Do not import", "false");
 			items.add("Import Truncated Logs", "true");

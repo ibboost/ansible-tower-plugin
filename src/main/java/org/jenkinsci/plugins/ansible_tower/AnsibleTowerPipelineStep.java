@@ -1,31 +1,38 @@
 package org.jenkinsci.plugins.ansible_tower;
 
-/*
-    This class is the pipeline step
-    We simply take the data from Jenkins and call an AnsibleTowerRunner
- */
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
 
-import com.google.inject.Inject;
-import hudson.Launcher;
-import hudson.model.*;
-import hudson.*;
-import hudson.util.ListBoxModel;
+import javax.annotation.Nonnull;
+
 import org.jenkinsci.plugins.ansible_tower.util.GetUserPageCredentials;
 import org.jenkinsci.plugins.ansible_tower.util.TowerInstallation;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
-import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
+import org.jenkinsci.plugins.workflow.steps.Step;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
-import javax.annotation.Nonnull;
-import java.util.Properties;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.AbortException;
+import hudson.EnvVars;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.model.Computer;
+import hudson.model.Item;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.util.ListBoxModel;
 
-public class AnsibleTowerStep extends AbstractStepImpl {
+public class AnsibleTowerPipelineStep extends Step {
     private String towerServer              = "";
     private String towerCredentialsId       = "";
     private String jobTemplate              = "";
@@ -38,7 +45,6 @@ public class AnsibleTowerStep extends AbstractStepImpl {
     private String credential               = "";
     private String scmBranch                = "";
     private Boolean verbose                 = false;
-    private Boolean importTowerLogs         = null;
     private String towerLogLevel            = null;
     private Boolean removeColor             = false;
     private String templateType             = "job";
@@ -49,7 +55,7 @@ public class AnsibleTowerStep extends AbstractStepImpl {
 
     /** @since 0.16.0 */
     @DataBoundConstructor
-    public AnsibleTowerStep(
+    public AnsibleTowerPipelineStep(
             @Nonnull String towerServer, @Nonnull String towerCredentialsId, @Nonnull String jobTemplate, String jobType
     ) {
         this.towerServer = towerServer;
@@ -57,6 +63,12 @@ public class AnsibleTowerStep extends AbstractStepImpl {
         this.jobTemplate = jobTemplate;
         this.jobType = jobType;
     }
+
+
+    @Override public final StepExecution start(StepContext context) throws Exception {
+    	return new AnsibleTowerStepExecution(this, context);
+    }
+
 
     @Nonnull
     public String getTowerServer()              { return towerServer; }
@@ -72,7 +84,6 @@ public class AnsibleTowerStep extends AbstractStepImpl {
     public String getCredential()               { return credential; }
     public String getScmBranch()                { return scmBranch; }
     public Boolean getVerbose()                 { return verbose; }
-    public Boolean getImportTowerLogs()         { return importTowerLogs; }
     public String getTowerLogLevel()            { return towerLogLevel; }
     public Boolean getRemoveColor()             { return removeColor; }
     public String getTemplateType()             { return templateType; }
@@ -105,12 +116,7 @@ public class AnsibleTowerStep extends AbstractStepImpl {
 	@DataBoundSetter
     public void setVerbose(Boolean verbose) { this.verbose = verbose; }
     @DataBoundSetter
-    public void setImportTowerLogs(Boolean importTowerLogs) {
-        this.importTowerLogs = importTowerLogs;
-        this.towerLogLevel = importTowerLogs.toString();
-    }
-    @DataBoundSetter
-    public void setTowerLogLevel(String importTowerLogs) { this.towerLogLevel = importTowerLogs; }
+    public void setTowerLogLevel(String towerLogLevel) { this.towerLogLevel = towerLogLevel; }
     @DataBoundSetter
     public void setRemoveColor(Boolean removeColor) { this.removeColor = removeColor; }
     @DataBoundSetter
@@ -127,7 +133,7 @@ public class AnsibleTowerStep extends AbstractStepImpl {
     }
 
     @Extension(optional = true)
-    public static final class DescriptorImpl extends AbstractStepDescriptorImpl {
+    public static final class DescriptorImpl extends StepDescriptor {
         public static final String towerServer              = AnsibleTower.DescriptorImpl.towerServer;
         public static final String towerCredentialsId       = AnsibleTower.DescriptorImpl.towerCredentialsId;
         public static final String jobTemplate              = AnsibleTower.DescriptorImpl.jobTemplate;
@@ -140,20 +146,30 @@ public class AnsibleTowerStep extends AbstractStepImpl {
         public static final String credential               = AnsibleTower.DescriptorImpl.credential;
         public static final String scmBranch                = AnsibleTower.DescriptorImpl.scmBranch;
         public static final Boolean verbose                 = AnsibleTower.DescriptorImpl.verbose;
-        public static final String towerLogLevel            = AnsibleTower.DescriptorImpl.importTowerLogs;
+        public static final String towerLogLevel            = AnsibleTower.DescriptorImpl.towerLogLevel;
         public static final Boolean removeColor             = AnsibleTower.DescriptorImpl.removeColor;
         public static final String templateType             = AnsibleTower.DescriptorImpl.templateType;
         public static final Boolean importWorkflowChildLogs = AnsibleTower.DescriptorImpl.importWorkflowChildLogs;
         public static final Boolean throwExceptionWhenFail  = AnsibleTower.DescriptorImpl.throwExceptionWhenFail;
         public static final Boolean async                   = AnsibleTower.DescriptorImpl.async;
 
-        public DescriptorImpl() {
-            super(AnsibleTowerStepExecution.class);
+        @Override
+        public Set<? extends Class<?>> getRequiredContext()
+        {
+          Set<Class<?>> contexts = new HashSet<>();
+          contexts.add(TaskListener.class);
+          contexts.add(Run.class);
+          contexts.add(Launcher.class);
+          contexts.add(FilePath.class);
+          contexts.add(EnvVars.class);
+          contexts.add(Computer.class);
+          contexts.add(Run.class);
+          return contexts;
         }
 
         @Override
         public String getFunctionName() {
-            return "ansibleTower";
+            return "ansibleTowerStep";
         }
 
         @Override
@@ -204,29 +220,37 @@ public class AnsibleTowerStep extends AbstractStepImpl {
     }
 
 
-    public static final class AnsibleTowerStepExecution extends AbstractSynchronousNonBlockingStepExecution<Properties> {
+    //public static final class AnsibleTowerStepExecution extends AbstractSynchronousNonBlockingStepExecution<Properties> {
+    @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Only used when starting.")
+    public static final class AnsibleTowerStepExecution extends SynchronousNonBlockingStepExecution<Properties> {
         private static final long serialVersionUID = 1L;
 
-        @Inject
-        private transient AnsibleTowerStep step;
-
-        @StepContextParameter
+        private transient final AnsibleTowerPipelineStep step;
         private transient TaskListener listener;
-
-        @StepContextParameter
         private transient Launcher launcher;
-
-        @StepContextParameter
         private transient Run<?,?> run;
-
-        @StepContextParameter
         private transient FilePath ws;
-
-        @StepContextParameter
         private transient EnvVars envVars;
-
-        @StepContextParameter
         private transient Computer computer;
+
+        AnsibleTowerStepExecution(AnsibleTowerPipelineStep step, StepContext context) {
+            super(context);
+            this.step = step;
+            try {
+				this.listener = context.get(TaskListener.class);
+				this.launcher = context.get(Launcher.class);
+				this.computer= context.get(Computer.class);
+				this.envVars = context.get(EnvVars.class);
+				this.ws = context.get(FilePath.class);
+				this.run = context.get(Run.class);
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+        }
+
 
         @Override
         protected Properties run() throws AbortException {
