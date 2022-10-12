@@ -34,8 +34,8 @@
     </developers>
 
     <scm>
-        <connection>scm:git:ssh://github.com/ibboost/ansible-tower-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/ibboost/ansible-tower-plugin.git</developerConnection>
+        <connection>scm:git:ssh://github.com:ibboost/ansible-tower-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:ibboost/ansible-tower-plugin.git</developerConnection>
         <url>https://github.com/ibboost/ansible-tower-plugin</url>
       <tag>HEAD</tag>
   </scm>
