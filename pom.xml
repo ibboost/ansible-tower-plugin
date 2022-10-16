@@ -38,7 +38,18 @@
         <developerConnection>scm:git:https://github.com/ibboost/ansible-tower-plugin.git</developerConnection>
         <url>https://github.com/ibboost/ansible-tower-plugin</url>
       <tag>HEAD</tag>
-  </scm>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>${internal.release.id}</id>
+            <url>${repo.internal.release.url}</url>
+        </repository>
+        <snapshotRepository>
+            <id>${internal.snapshot.id}</id>
+            <url>${repo.internal.snapshot.url}</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
