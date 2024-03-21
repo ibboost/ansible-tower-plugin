@@ -13,6 +13,7 @@ import org.jenkinsci.plugins.ansible_tower.util.TowerJob;
 import org.jenkinsci.plugins.ansible_tower.util.TowerProject;
 import org.jenkinsci.plugins.ansible_tower.util.TowerProjectSync;
 import org.jenkinsci.plugins.envinject.service.EnvInjectActionSetter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /*
     This class is a bridge between the Jenkins workflow/plugin step and TowerConnector.
@@ -27,6 +28,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 public class AnsibleTowerRunner {
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value={"UWF_NULL_FIELD", "URF_UNREAD_FIELD", "UUF_UNUSED_FIELD"}, justification="Initialized in method")
     private TowerJob myJob = null;
 
     public boolean runJobTemplate(
@@ -45,6 +47,7 @@ public class AnsibleTowerRunner {
                 templateType, importWorkflowChildLogs, ws, run, towerResults, false);
     }
 
+    @SuppressFBWarnings(value={"DCN_NULLPOINTER_EXCEPTION"}, justification="Upstream compatibility (for now)")
     public boolean runJobTemplate(
             PrintStream logger, String towerServer, String towerCredentialsId, String jobTemplate, String jobType,
             String extraVars, String limit, String jobTags, String skipJobTags, String inventory, String credential, String scmBranch,
@@ -313,7 +316,6 @@ public class AnsibleTowerRunner {
             Plugin envInjectPlugin = null;
             try {
                 envInjectPlugin = Objects.requireNonNull(Jenkins.getInstance()).getPlugin("envinject");
-            @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value="DCN_NULLPOINTER_EXCEPTION", justification="Upstream compatibility (for now)")
             } catch(NullPointerException e) {
                 // We don't care if we get a NPE here
             }
@@ -342,6 +344,7 @@ public class AnsibleTowerRunner {
         return wasSuccessful;
     }
 
+    @SuppressFBWarnings(value={"NP_UNWRITTEN_FIELD"}, justification="Initialized in method")
     public void getJobLogs(String towerLogLevel, PrintStream logger) throws AnsibleTowerException {
         if (towerLogLevel.matches("false")) { return; }
 
@@ -354,13 +357,14 @@ public class AnsibleTowerRunner {
         }
     }
 
+    @SuppressFBWarnings(value={"NP_UNWRITTEN_FIELD"}, justification="Initialized in method")
     public boolean cancelJob(PrintStream logger) {
         logger.println("Attempting to cancel launched Tower job");
         try {
             this.myJob.cancelJob();
-            logger.println("Job successfully canceled in Tower");
+            logger.println("Job successfully cancelled in Tower");
         } catch(AnsibleTowerException ae) {
-            logger.println("Failed to cancel tower job: "+ ae);
+            logger.println("Failed to cancel Tower job: "+ ae);
         }
         return false;
     }

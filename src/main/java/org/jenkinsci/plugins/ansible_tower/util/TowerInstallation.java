@@ -27,6 +27,7 @@ import org.kohsuke.stapler.QueryParameter;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import org.kohsuke.stapler.verb.POST;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
@@ -87,6 +88,7 @@ public class TowerInstallation extends AbstractDescribableImpl<TowerInstallation
         return testConnector;
     }
 
+    @SuppressFBWarnings(value="DCN_NULLPOINTER_EXCEPTION", justification="Upstream compatibility (for now)")
     private static <C extends Credentials> List<C> getCredsList(Class<C> type, Run run) {
         List<C> credsList;
 
@@ -94,7 +96,6 @@ public class TowerInstallation extends AbstractDescribableImpl<TowerInstallation
             try {
                 credsList = CredentialsProvider.lookupCredentials(type,
                         run.getParent(), null, new DomainRequirement());
-            @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value="DCN_NULLPOINTER_EXCEPTION", justification="Upstream compatibility (for now)")
             } catch (NullPointerException e) {
                 credsList = CredentialsProvider.lookupCredentials(type);
             }
