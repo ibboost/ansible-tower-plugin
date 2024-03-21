@@ -5,7 +5,8 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.47</version>
+        <!-- <version>3.57</version> -->
+        <version>4.79</version>
         <relativePath />
     </parent>
 
@@ -42,8 +43,10 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jenkins.version>2.138.4</jenkins.version>
-        <java.level>8</java.level>
+        <!-- <jenkins.version>2.138.4</jenkins.version> -->
+        <!-- <jenkins.version>2.361.4</jenkins.version> -->
+        <jenkins.version>2.426.3</jenkins.version>
+        <!-- <java.level>8</java.level> -->
     </properties>
 
     <build>
@@ -52,7 +55,7 @@
                 <groupId>org.jenkins-ci.tools</groupId>
                 <artifactId>maven-hpi-plugin</artifactId>
                 <configuration>
-                    <minimumJavaVersion>1.8</minimumJavaVersion>
+                    <!-- <minimumJavaVersion>1.8</minimumJavaVersion> -->
                     <pluginFirstClassLoader>true</pluginFirstClassLoader>
                 </configuration>
             </plugin>
@@ -73,7 +76,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19</version>
+                <!-- <version>2.19</version> -->
             </plugin>
         </plugins>
         <pluginManagement>
@@ -106,29 +109,40 @@
         	</plugins>
         </pluginManagement>
     </build>
-
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.jenkins.tools.bom</groupId>
+                <artifactId>bom-2.440.x</artifactId>
+                <!-- Latest version goes here -->
+                <version>2884.vc36b_64ce114a_</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>credentials</artifactId>
-            <version>2.3.0</version>
+            <!-- <version>2.3.0</version> -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
-            <version>1.67</version>
+            <!-- <version>1.67</version> -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>2.20</version>
+            <!-- <version>2.20</version> -->
             <optional>true</optional>
         </dependency>
         <!-- We are going to use plaincredentials to store the OAuthToken (at least for now) -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>plain-credentials</artifactId>
-            <version>1.4</version>
+            <!-- <version>1.4</version> -->
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -141,7 +155,7 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.13</version>
+            <!-- <version>1.13</version> -->
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
         <dependency>
