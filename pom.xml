@@ -12,7 +12,7 @@
 
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>ansible-tower-ibb</artifactId>
-    <version>0.16.11-SNAPSHOT</version>
+    <version>0.16.11</version>
     <packaging>hpi</packaging>
     <name>Ansible Tower Plugin</name>
     <url>https://github.com/jenkinsci/ansible-tower-plugin</url>
@@ -35,7 +35,7 @@
         <connection>scm:git:https://github.com/ibboost/ansible-tower-plugin.git</connection>
         <developerConnection>scm:git:https://github.com/ibboost/ansible-tower-plugin.git</developerConnection>
         <url>https://github.com/ibboost/ansible-tower-plugin</url>
-      <tag>HEAD</tag>
+      <tag>ansible-tower-ibb-0.16.11</tag>
     </scm>
 
     <properties>
