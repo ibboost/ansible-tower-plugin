@@ -94,6 +94,7 @@ public class TowerInstallation extends AbstractDescribableImpl<TowerInstallation
             try {
                 credsList = CredentialsProvider.lookupCredentials(type,
                         run.getParent(), null, new DomainRequirement());
+            @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value="DCN_NULLPOINTER_EXCEPTION", justification="Upstream compatibility (for now)")
             } catch (NullPointerException e) {
                 credsList = CredentialsProvider.lookupCredentials(type);
             }

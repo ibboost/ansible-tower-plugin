@@ -313,6 +313,7 @@ public class AnsibleTowerRunner {
             Plugin envInjectPlugin = null;
             try {
                 envInjectPlugin = Objects.requireNonNull(Jenkins.getInstance()).getPlugin("envinject");
+            @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value="DCN_NULLPOINTER_EXCEPTION", justification="Upstream compatibility (for now)")
             } catch(NullPointerException e) {
                 // We don't care if we get a NPE here
             }
