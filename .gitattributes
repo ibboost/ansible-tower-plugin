@@ -6,9 +6,10 @@
 
 # Force batch scripts to always use CRLF line endings so that if a repo is accessed
 # in Windows via a file share from Linux, the scripts will work.
-*.{cmd,[cC][mM][dD]} text eol=crlf
-*.{bat,[bB][aA][tT]} text eol=crlf
-*.ps{1,m,m1} text eol=crlf
+*.[cC][mM][dD] text eol=crlf
+*.[bB][aA][tT] text eol=crlf
+*.ps[1m] text eol=crlf
+*.psm1 text eol=crlf
 *.bas text eol=crlf
 *.vbs text eol=crlf
 *.reg text eol=crlf
@@ -16,12 +17,20 @@
 # Force bash scripts to always use LF line endings so that if a repo is accessed
 # in Unix via a file share from Windows, the scripts will work. Similar for known
 # language files like Groovy which we know are agnostic.
-*.{ba,k,c}sh text eol=lf
+*.[kc]sh text eol=lf
+*.bash text eol=lf
+*.sh text eol=lf
+# Capture dot files too
+*.*bash* text eol=lf
 *.groovy text eol=lf
-*.php{,4,8} text eol=lf
-*.{,e}rb text eol=lf
+*.java text eol=lf
+*.php text eol=lf
+*.php? text eol=lf
+*.rb text eol=lf
+*.erb text eol=lf
 *.rake text eol=lf
-*.py{,c} text eol=lf
+*.py text eol=lf
+*.pyc text eol=lf
 *.scss text eol=lf
 *.sass text eol=lf
 *.css text eol=lf
@@ -35,9 +44,11 @@
 *.csv text eol=lf
 *.tsv text eol=lf
 *.xml text eol=lf
-*.xsl{,t} text eol=lf
+*.xsl text eol=lf
+*.xslt text eol=lf
 *.xsd text eol=lf
-*.y{,a}ml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
 *.templ text eol=lf
 *.tpl text eol=lf
 *.j2 text eol=lf
@@ -51,7 +62,7 @@
 *.conf text eol=lf
 *.cnf text eol=lf
 *config text eol=lf
-*[lL][iI][cC][eE]n[N][cCsS][eE] text eol=lf
+*[lL][iI][cC][eE][nN][cCsS][eE] text eol=lf
 *.log text eol=lf
 *.properties text eol=lf
 *.props text eol=lf
@@ -110,7 +121,7 @@
 *.cpp binary
 *.h binary
 *.dat binary
-*.{cs,vb,vc,vcx}proj binary
+*.[cv]*proj binary
 *.[dD][tT][dD] binary
 *.launch binary
 *.lock binary
